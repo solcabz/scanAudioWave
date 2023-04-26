@@ -24,24 +24,25 @@ def process_file(file_path):
     if os.path.exists('temp.wav'):
         os.remove('temp.wav')
     # Extract audio stream from MP4 file and save as WAV file
-    subprocess.run(['ffmpeg', '-i', file_path, '-vn', '-acodec', 'pcm_s16le', '-ar', '44100', '-ac', '2', 'temp.wav'])
+    subprocess.run(['ffmpeg', '-i', file_path, '-vn', '-acodec', 'pcm_s16le', '-ar', '48000', '-ac', '2', 'temp.wav'])
 
     # Read WAV file and analyze audio wave
     audio = AudioSegment.from_wav('temp.wav')
     start_times = []
     start = None
-    threshold = -3.0
-    for i in range(len(audio)):
-        if audio[i].dBFS >= threshold:
-            if start is None:
-                start = i - 1000
-        elif start is not None and i - start > 3000:
+    thresholds = [-3, -2, -1, 0]
+    for threshold in thresholds:
+        for i in range(len(audio)):
+            if audio[i].dBFS >= threshold:
+                if start is None:
+                    start = i - 1000
+            elif start is not None and i - start > 3000:
+                start_times.append(start / 1000)
+                start = None
+            elif start is not None and i == len(audio) - 1:
+                start_times.append(start / 1000)
+        if start is not None and len(audio) - start > 3000:
             start_times.append(start / 1000)
-            start = None
-        elif start is not None and i == len(audio) - 1:
-            start_times.append(start / 1000)
-    if start is not None and len(audio) - start > 3000:
-        start_times.append(start / 1000)
 
     # Return the list of start times
     return start_times
